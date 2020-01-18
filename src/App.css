@@ -1,38 +1,69 @@
-.App {
-  text-align: center;
-}
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+.gridview {
+  width: 85vh;
+  height: 85vh;
   align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 4vh;
+  align-content: flex-start;
+} 
+
+.tile {
+  width: 10vh;
+  height: 10vh;
 }
 
-.App-link {
-  color: #61dafb;
+img {
+  height: 10vh;
+  width: 10vh;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.App {
+  overflow: hidden;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+}
+
+.unselecteddark {
+  background-color: #b58863;
+}
+
+.unselectedlight {
+  background-color: #f0d9b5;
+}
+
+.selecteddark{
+  background-color:#e1f2f1;
+}
+
+.selectedlight{
+  background-color: #e1f2f1;
+}
+
+.moveablelight {
+  background-color: #ffe6e6;
+}
+
+.moveabledark {
+  background-color: #ffb3b3;
+}
+
+.opponentthreatendark {
+  background-color: red;
+}
+
+.opponentthreatenlight {
+  background-color: red;
+}
+
+.whitebutton {
+  width: 50vh;
+  height: 50vh;
+}
+
+.blackbutton {
+  width: 50vh;
+  height: 50vh;
 }
