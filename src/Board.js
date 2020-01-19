@@ -1,5 +1,7 @@
 import React from 'react'
 import Tile from './Tile'
+import _ from 'lodash'
+
 const boardSize = 8;
 
 export default class Board extends React.Component {
@@ -7,6 +9,7 @@ export default class Board extends React.Component {
     constructor(props) {
 
         super(props);
+
 
         this.state = {
             tiles: [],
@@ -18,6 +21,7 @@ export default class Board extends React.Component {
             opponentThreaten: new Array(8).fill(false).map(()=>new Array(8).fill(false)),
         };
 
+        
         for(let i=0;i<boardSize;i++) {
             var row = [];
             for(let j=0;j<boardSize;j++) {
@@ -77,34 +81,57 @@ export default class Board extends React.Component {
             });
             return;
         }
-
+    
         // if previous piece selected is the player's and the new place is a valid spot, send move to server
         if (prevSelected.length !== 0 && moveable[i][j]) {
+
             var prevPiece = this.props.pieces[prevSelected[0]][prevSelected[1]];
             if (prevPiece !== null && ((prevPiece.color === 'l' && this.props.player === 'white') || (prevPiece.color === 'd' && this.props.player === 'black'))) {
-                var msg = {};
-
-                msg.type = "move";
-                msg.player = this.props.player;
-                msg.move = `${prevSelected[0]}${prevSelected[1]}${i}${j}`
-                this.props.ws.send(JSON.stringify(msg));
-
-                // once moved, unselect everything 
-                for (let i=0;i<boardSize; i++) {
-                    for (let j=0;j<boardSize; j++) {
-                        tiles[i][j].state = "unselected";
-                        moveable[i][j] = false;
-                   }
+                
+                var stillChecked = false;
+                // check if the new move is still checked
+                var pieces = this.clone(this.props.pieces);
+                var gameState = {
+                    checked: false,
+                    oppChecked: false,
+                    opponentThreaten: new Array(8).fill(false).map(()=>new Array(8).fill(false))
                 }
 
-                this.setState({
-                    tiles: tiles,
-                    moveable: moveable
-                })
-                return;
+                pieces[i][j] = pieces[prevSelected[0]][prevSelected[1]];
+                pieces[[prevSelected[0]][prevSelected[1]]] = null;
+                this.getThreats(gameState, pieces);
+                console.log("checking legality");
+                if (gameState.checked) {
+                    console.log("illegal move, still checked");
+                    stillChecked = true;
+                } 
+                 
+                if (!stillChecked) {
+                    var msg = {};
+
+                    msg.type = "move";
+                    msg.player = this.props.player;
+                    msg.move = `${prevSelected[0]}${prevSelected[1]}${i}${j}`
+                    this.props.ws.send(JSON.stringify(msg));
+                
+                }
             }
+
+            // once done, unselect everything 
+            for (let i=0;i<boardSize; i++) {
+                for (let j=0;j<boardSize; j++) {
+                    tiles[i][j].state = "unselected";
+                    moveable[i][j] = false;
+                }
+            }
+
+            this.setState({
+                tiles: tiles,
+                moveable: moveable
+            })
+            return;
         }
-        // unselect everything first
+        // unselect everything 
         for (let i=0;i<boardSize; i++) {
             for (let j=0;j<boardSize; j++) {
                 tiles[i][j].state = "unselected";
@@ -121,6 +148,10 @@ export default class Board extends React.Component {
             tiles: tiles,
             currSelected: currSelected
         });
+    };
+
+    checkIfChecked() {
+
     }
 
     // TODO
@@ -270,7 +301,6 @@ export default class Board extends React.Component {
 
         if (piece.type === 'k') {
             toCheck = [[i-1, j], [i-1, j-1], [i-1, j+1], [i, j+1], [i+1, j-1], [i+1, j], [i, j+1], [i+1, j+1]];
-
             for (let k=0;k<toCheck.length;k++) {
                 y = toCheck[k][0];
                 x = toCheck[k][1];
@@ -283,37 +313,22 @@ export default class Board extends React.Component {
 
     };
 
-    componentDidUpdate(prevProps) {
-
-        if (this.equals(this.props.pieces, prevProps.pieces)) {
-            return;
-        }
-
-        var playerIsChecked = false;
-        var oppChecked = false;
-        var opponentThreaten = new Array(8).fill(false).map(()=>new Array(8).fill(false));
-        var pieces = this.props.pieces;
+    getThreats(gameState, pieces) {
+        
         var tiles = this.state.tiles;
 
-        // TODO: REMOVE THIS WHEN DONE
-        // unselect everything first
-        for (let i=0;i<boardSize; i++) {
-            for (let j=0;j<boardSize; j++) {
-                tiles[i][j].state = "unselected";
-            }
-        }
         var update = function(ownPiece, q, w, e, r) {
             if (pieces[e][r] !== null) {
                 if (pieces[q][w].color !== pieces[e][r].color) {
                     if (ownPiece) {
                         // for your own piece, all you have to check is if you check the opponent
                         if (pieces[e][r].type === 'k') {
-                            oppChecked = true;
+                            gameState.oppChecked = true;
                         }
                     } else {
                         if (pieces[e][r].type === 'k') {
-                            playerIsChecked = true;
-                            opponentThreaten[e][r] = true;
+                            gameState.checked = true;
+                            gameState.opponentThreaten[e][r] = true;
                             // REMOVE THIS ONCE DONE 
                             tiles[e][r].state = "opponentthreaten";
                         }
@@ -323,7 +338,7 @@ export default class Board extends React.Component {
             }
 
             if (!ownPiece) {
-                opponentThreaten[e][r] = true;
+                gameState.opponentThreaten[e][r] = true;
                 tiles[e][r].state = "opponentthreaten";
             }
 
@@ -334,7 +349,7 @@ export default class Board extends React.Component {
                 if (pieces[i][j] === null) {
                     continue;
                 }
-                var ownPiece = !this.isOpponentPiece(this.props.pieces[i][j].color, this.props.player);
+                var ownPiece = !this.isOpponentPiece(pieces[i][j].color, this.props.player);
 
                 if (pieces[i][j].type === 'r' || pieces[i][j].type === 'q') {
                     // up
@@ -417,12 +432,42 @@ export default class Board extends React.Component {
                 }
             };                    
         };
-
         this.setState({
-            tiles: tiles,
-            oppChecked: oppChecked,
-            checked: playerIsChecked,
-            opponentThreaten: opponentThreaten,
+            tiles: tiles
+        })
+
+    }
+
+    componentDidUpdate(prevProps) {
+
+        if (this.equals(this.props.pieces, prevProps.pieces)) {
+            return;
+        }
+
+        console.log(this.props.pieces);
+        var gameState = {
+            checked: false,
+            oppChecked: false,
+            opponentThreaten: new Array(8).fill(false).map(()=>new Array(8).fill(false))
+        }
+
+        var tiles = this.state.tiles;
+
+
+        // TODO: REMOVE THIS WHEN DONE
+        // unselect everything first
+        for (let i=0;i<boardSize; i++) {
+            for (let j=0;j<boardSize; j++) {
+                tiles[i][j].state = "unselected";
+            }
+        }
+
+        this.getThreats(gameState, this.props.pieces);
+      
+        this.setState({
+            oppChecked: gameState.oppChecked,
+            checked: gameState.checked,
+            opponentThreaten: gameState.opponentThreaten,
         })
     }
 
@@ -472,7 +517,10 @@ export default class Board extends React.Component {
         return true;
     }
 
-    
+    clone(pieces) {
+        return _.cloneDeep(pieces);
+    };
+
     render() {
         if (this.state.oppChecked || this.state.checked) {
             var checked = <div> Checked </div>;
