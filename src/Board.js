@@ -65,6 +65,10 @@ export default class Board extends React.Component {
         console.log(`pressed: ${i} ${j}`);
         this.updateGameState();
 
+        if (this.props.turn !== this.props.player) {
+            console.log("not your turn");
+            return;
+        }
         var tiles = this.state.tiles;
         // this.state.currSelected refers to the previous selection indexes before this click
         var prevSelected = this.state.currSelected;
@@ -137,7 +141,6 @@ export default class Board extends React.Component {
         if (gameState.checked) {
             return false;
         } 
-
         return true;
     }
 
@@ -448,7 +451,6 @@ export default class Board extends React.Component {
         this.setState({
             tiles: tiles
         });
-        console.log(gameState);
     }
 
     componentDidUpdate(prevProps) {
@@ -484,7 +486,6 @@ export default class Board extends React.Component {
 
         var moveable = this.getMoveables(this.props.pieces);
         var isCheckMate = gameState.checked;
-        console.log(moveable);
         if (gameState.checked) {
             // check if there is any moveable spots 
             for (let i=0;i<boardSize; i++) {

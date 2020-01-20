@@ -43,8 +43,10 @@ class App extends React.Component {
 
         ws.onmessage = evt => {
 			// listen to data sent from the websocket server
-			const message = JSON.parse(evt.data)
-			this.setState({pieces: message,
+			const message = JSON.parse(evt.data);
+			console.log(message);
+			this.setState({pieces: message.pieces,
+			turn: message.turn,
 			entered: true});
 		}
 	
@@ -94,7 +96,7 @@ class App extends React.Component {
 		var toRender = <Landing onClick={this.onClick} waiting={this.state.waiting} />;
 
 		if (this.state.entered) {
-			toRender = <Board ws={this.state.ws} player={this.state.color} pieces={this.state.pieces}/>
+			toRender = <Board ws={this.state.ws} player={this.state.color} pieces={this.state.pieces} turn={this.state.turn}/>
 		} 
 
 		return (
