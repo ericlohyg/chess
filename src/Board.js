@@ -19,6 +19,7 @@ export default class Board extends React.Component {
             checked: false,
             oppChecked: false,
             opponentThreaten: new Array(8).fill(false).map(()=>new Array(8).fill(false)),
+            isCheckMate: false
         };
 
         
@@ -62,9 +63,9 @@ export default class Board extends React.Component {
         e.preventDefault();
         
         console.log(`pressed: ${i} ${j}`);
+        this.updateGameState();
 
         var tiles = this.state.tiles;
-        var moveable = this.state.moveable;
         // this.state.currSelected refers to the previous selection indexes before this click
         var prevSelected = this.state.currSelected;
         
@@ -83,54 +84,24 @@ export default class Board extends React.Component {
         }
     
         // if previous piece selected is the player's and the new place is a valid spot, send move to server
-        if (prevSelected.length !== 0 && moveable[i][j]) {
+        if (prevSelected.length !== 0) {
 
             var prevPiece = this.props.pieces[prevSelected[0]][prevSelected[1]];
             if (prevPiece !== null && ((prevPiece.color === 'l' && this.props.player === 'white') || (prevPiece.color === 'd' && this.props.player === 'black'))) {
                 
-                var stillChecked = false;
-                // check if the new move is still checked
-                var pieces = this.clone(this.props.pieces);
-                var gameState = {
-                    checked: false,
-                    oppChecked: false,
-                    opponentThreaten: new Array(8).fill(false).map(()=>new Array(8).fill(false))
-                }
+                var moveable = this.getMoveable(this.state.tiles, prevSelected[0], prevSelected[1]);
 
-                pieces[i][j] = pieces[prevSelected[0]][prevSelected[1]];
-                pieces[[prevSelected[0]][prevSelected[1]]] = null;
-                this.getThreats(gameState, pieces);
-                console.log("checking legality");
-                if (gameState.checked) {
-                    console.log("illegal move, still checked");
-                    stillChecked = true;
-                } 
-                 
-                if (!stillChecked) {
+                if (moveable[i][j] && this.isLegalMove(this.props.pieces, prevSelected[0], prevSelected[1], i, j)) {
                     var msg = {};
-
                     msg.type = "move";
                     msg.player = this.props.player;
-                    msg.move = `${prevSelected[0]}${prevSelected[1]}${i}${j}`
+                    msg.move = `${prevSelected[0]}${prevSelected[1]}${i}${j}`;
                     this.props.ws.send(JSON.stringify(msg));
-                
-                }
-            }
-
-            // once done, unselect everything 
-            for (let i=0;i<boardSize; i++) {
-                for (let j=0;j<boardSize; j++) {
-                    tiles[i][j].state = "unselected";
-                    moveable[i][j] = false;
-                }
-            }
-
-            this.setState({
-                tiles: tiles,
-                moveable: moveable
-            })
-            return;
-        }
+                } else {
+                    console.log("not legal move");
+                };
+            };
+        };
         // unselect everything 
         for (let i=0;i<boardSize; i++) {
             for (let j=0;j<boardSize; j++) {
@@ -139,7 +110,6 @@ export default class Board extends React.Component {
         }
 
         tiles[i][j].state = "selected";
-        this.updateMovable(tiles, i, j);
 
         currSelected = [];
         currSelected.push(i);
@@ -150,14 +120,32 @@ export default class Board extends React.Component {
         });
     };
 
-    checkIfChecked() {
+    // move is not legal if the player making the move ends up being checked
+    isLegalMove(pieces, startI, startJ, endI, endJ) {
+        var p = this.clone(pieces);
 
+        var gameState = {
+            checked: false,
+            oppChecked: false,
+            opponentThreaten: new Array(8).fill(false).map(()=>new Array(8).fill(false))
+        }
+
+        p[endI][endJ] = p[startI][startJ];
+        p[startI][startJ] = null;
+        this.getThreats(gameState, p);
+
+        if (gameState.checked) {
+            return false;
+        } 
+
+        return true;
     }
 
     // TODO
-    updateMovable(tiles, i, j) {
-        var moveable = this.state.moveable;
+    getMoveable(tiles, i, j) {
+        var moveable = new Array(8).fill(false).map(()=>new Array(8).fill(false));
         var piece = this.props.pieces[i][j];
+
         if (piece === null) {
             return;
         }
@@ -170,40 +158,49 @@ export default class Board extends React.Component {
             // up
             var y = i-1;
             while (y >= 0 && (this.props.pieces[y][j] === null || this.isOpponentPiece(this.props.pieces[y][j].color, this.props.player))) {
-                moveable[y][j] = true;
-                tiles[y][j].state = "moveable";
-                if (this.props.pieces[y][j] !== null) {
-                    break;
+                if (this.isLegalMove(this.props.pieces, i, j, y, j)) {
+                    moveable[y][j] = true;
+                    tiles[y][j].state = "moveable";
+                    if (this.props.pieces[y][j] !== null) {
+                        break;
+                    }
                 }
                 y = y - 1;
+                
             }
             // down
             y = i+1
             while (y <= 7 && (this.props.pieces[y][j] === null || this.isOpponentPiece(this.props.pieces[y][j].color, this.props.player))) {
-                moveable[y][j] = true;
-                tiles[y][j].state = "moveable";
-                if (this.props.pieces[y][j] !== null) {
-                    break;
+                if (this.isLegalMove(this.props.pieces, i, j, y, j)) {
+                    moveable[y][j] = true;
+                    tiles[y][j].state = "moveable";
+                    if (this.props.pieces[y][j] !== null) {
+                        break;
+                    };
                 };
                 y = y + 1;
             };
             // left
             y = j-1
             while (y >= 0 && (this.props.pieces[i][y] === null || this.isOpponentPiece(this.props.pieces[i][y].color, this.props.player))) {
-                moveable[i][y] = true;
-                tiles[i][y].state = "moveable";
-                if (this.props.pieces[i][y] !== null) {
-                    break;
+                if (this.isLegalMove(this.props.pieces, i, j, i, y)) {
+                    moveable[i][y] = true;
+                    tiles[i][y].state = "moveable";
+                    if (this.props.pieces[i][y] !== null) {
+                        break;
+                    };
                 };
                 y = y - 1;
             };
             // right
             y = j+1
             while (y <= 7 && (this.props.pieces[i][y] === null || this.isOpponentPiece(this.props.pieces[i][y].color, this.props.player))) {
-                moveable[i][y] = true;
-                tiles[i][y].state = "moveable";
-                if (this.props.pieces[i][y] !== null) {
-                    break;
+                if (this.isLegalMove(this.props.pieces, i, j, i, y)) {
+                    moveable[i][y] = true;
+                    tiles[i][y].state = "moveable";
+                    if (this.props.pieces[i][y] !== null) {
+                        break;
+                    };
                 };
                 y = y + 1;
             };
@@ -213,10 +210,12 @@ export default class Board extends React.Component {
             y = i - 1;
             var x = j + 1;
             while (y >= 0 && x <= 7 && (this.props.pieces[y][x] === null || this.isOpponentPiece(this.props.pieces[y][x].color, this.props.player))) {
-                moveable[y][x] = true;
-                tiles[y][x].state = "moveable";
-                if (this.props.pieces[y][x] !== null) {
-                    break;
+                if (this.isLegalMove(this.props.pieces, i, j, y, x)) {
+                    moveable[y][x] = true;
+                    tiles[y][x].state = "moveable";
+                    if (this.props.pieces[y][x] !== null) {
+                        break;
+                    };
                 };
                 y = y - 1;
                 x = x + 1;
@@ -225,10 +224,12 @@ export default class Board extends React.Component {
             y = i - 1;
             x = j - 1;
             while (y >= 0 && x >= 0 && (this.props.pieces[y][x] === null || this.isOpponentPiece(this.props.pieces[y][x].color, this.props.player))) {
-                moveable[y][x] = true;
-                tiles[y][x].state = "moveable";
-                if (this.props.pieces[y][x] !== null) {
-                    break;
+                if (this.isLegalMove(this.props.pieces, i, j, y, x)) {
+                    moveable[y][x] = true;
+                    tiles[y][x].state = "moveable";
+                    if (this.props.pieces[y][x] !== null) {
+                        break;
+                    };
                 };
                 y = y - 1;
                 x = x - 1;
@@ -237,10 +238,12 @@ export default class Board extends React.Component {
             y = i + 1;
             x = j - 1;
             while (y <= 7 && x >= 0 && (this.props.pieces[y][x] === null || this.isOpponentPiece(this.props.pieces[y][x].color, this.props.player))) {
-                moveable[y][x] = true;
-                tiles[y][x].state = "moveable";
-                if (this.props.pieces[y][x] !== null) {
-                    break;
+                if (this.isLegalMove(this.props.pieces, i, j, y, x)) {
+                    moveable[y][x] = true;
+                    tiles[y][x].state = "moveable";
+                    if (this.props.pieces[y][x] !== null) {
+                        break;
+                    };
                 };
                 y = y + 1;
                 x = x - 1;
@@ -249,10 +252,12 @@ export default class Board extends React.Component {
             y = i + 1;
             x = j + 1;
             while (y <= 7 && x <= 7 && (this.props.pieces[y][x] === null || this.isOpponentPiece(this.props.pieces[y][x].color, this.props.player))) {
-                moveable[y][x] = true;
-                tiles[y][x].state = "moveable";
-                if (this.props.pieces[y][x] !== null) {
-                    break;
+                if (this.isLegalMove(this.props.pieces, i, j, y, x)) {
+                    moveable[y][x] = true;
+                    tiles[y][x].state = "moveable";
+                    if (this.props.pieces[y][x] !== null) {
+                        break;
+                    };
                 };
                 y = y + 1;
                 x = x + 1;
@@ -266,8 +271,10 @@ export default class Board extends React.Component {
                 y = toCheck[h][0];
                 x = toCheck[h][1];
                 if (this.inRange(x, y) && (this.props.pieces[y][x] === null || this.isOpponentPiece(this.props.pieces[y][x].color, this.props.player))) {
-                    moveable[y][x] = true;
-                    tiles[y][x].state = "moveable";
+                    if (this.isLegalMove(this.props.pieces, i, j, y, x)) {
+                        moveable[y][x] = true;
+                        tiles[y][x].state = "moveable";
+                    };
                 };
             };
         };
@@ -277,23 +284,31 @@ export default class Board extends React.Component {
             var left = j - 1;
             var right = j + 1;
             if (left >= 0 && (this.props.pieces[i-1][left] !== null && this.isOpponentPiece(this.props.pieces[i-1][left].color, this.props.player))) {
-                moveable[i-1][left] = true;
-                tiles[i-1][left].state = "moveable";
+                if (this.isLegalMove(this.props.pieces, i, j, i-1, left)) {
+                    moveable[i-1][left] = true;
+                    tiles[i-1][left].state = "moveable";
+                }
             }
             if (right <= 7 && (this.props.pieces[i-1][right] !== null && this.isOpponentPiece(this.props.pieces[i-1][right].color, this.props.player))) {
-                moveable[i-1][right] = true;
-                tiles[i-1][right].state = "moveable";
+                if (this.isLegalMove(this.props.pieces, i, j, i-1, right)) {
+                    moveable[i-1][right] = true;
+                    tiles[i-1][right].state = "moveable";
+                }
             }
             var up = i - 1;
             if (up >= 0 && (this.props.pieces[up][j] === null)) {
-                moveable[up][j] = true;
-                tiles[up][j].state = "moveable";
+                if (this.isLegalMove(this.props.pieces, i, j, up, j)) {
+                    moveable[up][j] = true;
+                    tiles[up][j].state = "moveable";
+                }
                 // if pawn is at original position, can move one more step
                 if (i === 6) {
                     up = up - 1;
                     if (up >= 0 && (this.props.pieces[up][j] === null)) {
-                        moveable[up][j] = true;
-                        tiles[up][j].state = "moveable";
+                        if (this.isLegalMove(this.props.pieces, i, j, up, j)) {
+                            moveable[up][j] = true;
+                            tiles[up][j].state = "moveable";
+                        }
                     };
                 };
             };
@@ -310,7 +325,7 @@ export default class Board extends React.Component {
                 }
             }
         };
-
+        return moveable;
     };
 
     getThreats(gameState, pieces) {
@@ -319,21 +334,19 @@ export default class Board extends React.Component {
 
         var update = function(ownPiece, q, w, e, r) {
             if (pieces[e][r] !== null) {
-                if (pieces[q][w].color !== pieces[e][r].color) {
                     if (ownPiece) {
                         // for your own piece, all you have to check is if you check the opponent
-                        if (pieces[e][r].type === 'k') {
+                        if (pieces[e][r].type === 'k' && pieces[e][r].color !== pieces[q][w].color) {
                             gameState.oppChecked = true;
                         }
                     } else {
-                        if (pieces[e][r].type === 'k') {
+                        if (pieces[e][r].type === 'k' && pieces[e][r].color !== pieces[q][w].color) {
                             gameState.checked = true;
-                            gameState.opponentThreaten[e][r] = true;
-                            // REMOVE THIS ONCE DONE 
-                            tiles[e][r].state = "opponentthreaten";
-                        }
+                        };
+                        gameState.opponentThreaten[e][r] = true;
+                        // REMOVE THIS ONCE DONE 
+                        tiles[e][r].state = "opponentthreaten";
                     }
-                }
                 return true;
             }
 
@@ -434,25 +447,26 @@ export default class Board extends React.Component {
         };
         this.setState({
             tiles: tiles
-        })
-
+        });
+        console.log(gameState);
     }
 
     componentDidUpdate(prevProps) {
-
         if (this.equals(this.props.pieces, prevProps.pieces)) {
             return;
-        }
+        };
 
-        console.log(this.props.pieces);
+        this.updateGameState();
+    };
+
+    updateGameState() {
         var gameState = {
             checked: false,
             oppChecked: false,
             opponentThreaten: new Array(8).fill(false).map(()=>new Array(8).fill(false))
-        }
+        };
 
         var tiles = this.state.tiles;
-
 
         // TODO: REMOVE THIS WHEN DONE
         // unselect everything first
@@ -463,14 +477,51 @@ export default class Board extends React.Component {
         }
 
         this.getThreats(gameState, this.props.pieces);
-      
+
+        this.setState({
+            opponentThreaten: gameState.opponentThreaten
+        });
+
+        var moveable = this.getMoveables(this.props.pieces);
+        var isCheckMate = gameState.checked;
+        console.log(moveable);
+        if (gameState.checked) {
+            // check if there is any moveable spots 
+            for (let i=0;i<boardSize; i++) {
+                for (let j=0;j<boardSize; j++) {
+                    if (moveable[i][j]) {
+                        isCheckMate = false;
+                    };
+                };
+            };
+        };
+        
         this.setState({
             oppChecked: gameState.oppChecked,
             checked: gameState.checked,
             opponentThreaten: gameState.opponentThreaten,
-        })
+            moveable: moveable,
+            isCheckMate: isCheckMate
+        });
+    };
+    getMoveables(pieces) {
+        var moveables = new Array(8).fill(false).map(()=>new Array(8).fill(false));
+        for (let i=0;i<8;i++) {
+            for (let j=0;j<8;j++) {
+                // only need to care about your own pieces
+                if (pieces[i][j] === null || this.isOpponentPiece(pieces[i][j].color, this.props.player)) {
+                    continue;
+                };
+                var moveableList = this.getMoveable(this.state.tiles, i, j);
+                for (let k=0;k<8;k++) {
+                    for (let h=0;h<8;h++) {
+                        moveables[k][h] = moveableList[k][h] || moveables[k][h];
+                    };
+                };
+            };
+        };
+        return moveables;
     }
-
     equals(pieces, pieces2) {
         for (let i=0;i<8;i++) {
             for (let j=0;j<8;j++) {
@@ -521,9 +572,12 @@ export default class Board extends React.Component {
         return _.cloneDeep(pieces);
     };
 
-    render() {
+    render() {        
         if (this.state.oppChecked || this.state.checked) {
             var checked = <div> Checked </div>;
+            if (this.state.isCheckMate) {
+                checked = <div> Check Mate</div>;
+            }
         } else {
             checked = <div></div>
         }
