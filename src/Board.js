@@ -19,7 +19,10 @@ export default class Board extends React.Component {
             checked: false,
             oppChecked: false,
             opponentThreaten: new Array(8).fill(false).map(()=>new Array(8).fill(false)),
-            isCheckMate: false
+            isCheckMate: false,
+            leftRookMoved: false,
+            rightRookMoved: false,
+            kingMoved: false
         };
 
         
@@ -67,7 +70,7 @@ export default class Board extends React.Component {
 
         if (this.props.turn !== this.props.player) {
             console.log("not your turn");
-            return;
+            //return;
         }
         var tiles = this.state.tiles;
         // this.state.currSelected refers to the previous selection indexes before this click
@@ -93,18 +96,42 @@ export default class Board extends React.Component {
             var prevPiece = this.props.pieces[prevSelected[0]][prevSelected[1]];
             if (prevPiece !== null && ((prevPiece.color === 'l' && this.props.player === 'white') || (prevPiece.color === 'd' && this.props.player === 'black'))) {
                 
-                var moveable = this.getMoveable(this.state.tiles, prevSelected[0], prevSelected[1]);
-
-                if (moveable[i][j] && this.isLegalMove(this.props.pieces, prevSelected[0], prevSelected[1], i, j)) {
+                if (this.castleIntent(this.props.pieces, prevSelected[0], prevSelected[1], i, j) !== "") {
+                    console.log("castle intent" + this.castleIntent(this.props.pieces, prevSelected[0], prevSelected[1], i, j));
                     var msg = {};
                     msg.type = "move";
                     msg.player = this.props.player;
-                    msg.move = `${prevSelected[0]}${prevSelected[1]}${i}${j}`;
-                    this.props.ws.send(JSON.stringify(msg));
+                    msg.move = 'c' + this.castleIntent(this.props.pieces, prevSelected[0], prevSelected[1], i, j);
+                    this.props.ws.send(JSON.stringify(msg));                   
                 } else {
-                    console.log("not legal move");
-                };
+                    var moveable = this.getMoveable(this.state.tiles, prevSelected[0], prevSelected[1]);
+
+                    if (moveable[i][j] && this.isLegalMove(this.props.pieces, prevSelected[0], prevSelected[1], i, j)) {
+                        msg = {};
+                        msg.type = "move";
+                        msg.player = this.props.player;
+                        msg.move = `${prevSelected[0]}${prevSelected[1]}${i}${j}`;
+                        this.props.ws.send(JSON.stringify(msg));
+                        
+                        if (prevSelected[0] === 7 && prevSelected[1] === 0 && prevPiece.type === 'r' && !this.state.leftRookMoved) {
+                            this.setState({
+                                leftRookMoved: true
+                            });
+                        } else if (prevSelected[0] === 7 && prevSelected[1] === 7 && prevPiece.type === 'r' && !this.state.rightRookMoved) {
+                            this.setState({
+                                rightRookMoved: true
+                            });                       
+                        } else if (prevPiece.type === 'k' && !this.state.kingMoved) {
+                            this.setState({
+                                kingMoved: true
+                            });
+                        };
+                    }
+                }
+            } else {
+                console.log("not legal move");
             };
+            
         };
         // unselect everything 
         for (let i=0;i<boardSize; i++) {
@@ -122,6 +149,48 @@ export default class Board extends React.Component {
             tiles: tiles,
             currSelected: currSelected
         });
+    };
+
+    castleIntent(pieces, i, j, y, x) {
+        // check if its intent to castle
+        // lots of condition for castle 
+        if (this.props.player === 'black' && pieces[i][j].type === 'k') {
+            if (i === 7 && j === 3 && y === 7 && x === 1                                        // start and end positions
+                && !this.state.checked                                                          // not checked 
+                && !this.state.opponentThreaten[7][2] && !this.state.opponentThreaten[7][1]     // king will not pass through threatened spots
+                && !this.state.leftRookMoved && !this.state.kingMoved                           // king and rook has not moved
+                && pieces[7][1] === null && pieces[7][2] === null) {                            // no pieces blocking
+                // black castle left 
+                return "bcl";
+            } else if (i === 7 && j === 3 && y === 7 && x === 5                                 // start and end positions
+                && !this.state.checked                                                          // not checked 
+                && !this.state.opponentThreaten[7][4] && !this.state.opponentThreaten[7][5]     // king will not pass through threatened spots
+                && !this.state.rightRookMoved && !this.state.kingMoved                          // king and rook has not moved
+                && pieces[7][4] === null && pieces[7][5] === null && pieces[7][6] === null) {   // no pieces blocking
+                // black castle right
+                return "bcr";
+            };
+        } else if (this.props.player === 'white' && pieces[i][j].type === 'k') {
+            console.log(this.state.leftRookMoved);
+            console.log(this.state.kingMoved);
+            if (i === 7 && j === 4 && y === 7 && x === 2                                        // start and end positions
+                && !this.state.checked                                                          // not checked 
+                && !this.state.opponentThreaten[7][3] && !this.state.opponentThreaten[7][2]     // king will not pass through threatened spots
+                && !this.state.leftRookMoved && !this.state.kingMoved                           // king and rook has not moved
+                && pieces[7][3] === null && pieces[7][2] === null && pieces[7][1] === null) {    // no pieces blocking
+                // white castle left 
+                return "wcl";
+            } else if (i === 7 && j === 4 && y === 7 && x === 6                                 // start and end positions
+                && !this.state.checked                                                          // not checked 
+                && !this.state.opponentThreaten[7][5] && !this.state.opponentThreaten[7][6]     // king will not pass through threatened spots
+                && !this.state.rightRookMoved && !this.state.kingMoved                          // king and rook has not moved
+                && pieces[7][5] === null && pieces[7][6] === null ) {                           // no pieces blocking
+                // white castle right
+                return "wcr";
+            };
+        } 
+
+        return "";
     };
 
     // move is not legal if the player making the move ends up being checked
@@ -326,13 +395,12 @@ export default class Board extends React.Component {
                     moveable[y][x] = true;
                     tiles[y][x].state = "moveable";
                 }
-            }
+            };
         };
         return moveable;
     };
 
-    getThreats(gameState, pieces) {
-        
+    getThreats(gameState, pieces) {  
         var tiles = this.state.tiles;
 
         var update = function(ownPiece, q, w, e, r) {

@@ -61,21 +61,56 @@ module.exports = class Game {
     }
 
     move(isWhite, moveString) {
-        var pi = moveString[0];
-        var pj = moveString[1];
-        var i = moveString[2];
-        var j = moveString[3];
 
-        if (isWhite) {
-            pi = 7 - pi;
-            i = 7 - i;
-            pj = 7 - pj;
-            j = 7 - j;
-        }
+        if (moveString[0] === 'c') {
+            // castle
+            var command = moveString.substring(1);
+            if (command === "bcl") {
+                var rook = this.pieces[7][0];
+                var king = this.pieces[7][3];
+                this.pieces[7][1] = king;
+                this.pieces[7][2] = rook;
+                this.pieces[7][0] = null;
+                this.pieces[7][3] = null;
+            } else if(command === "bcr") {
+                var rook = this.pieces[7][7];
+                var king = this.pieces[7][3];
+                this.pieces[7][5] = king;
+                this.pieces[7][4] = rook;
+                this.pieces[7][7] = null;
+                this.pieces[7][3] = null;                               
+            }  else if(command === "wcl") {
+                var rook = this.pieces[0][7];
+                var king = this.pieces[0][3];
+                this.pieces[0][5] = king;
+                this.pieces[0][4] = rook;
+                this.pieces[0][7] = null;
+                this.pieces[0][3] = null;                               
+            }  else if(command === "wcr") {
+                var rook = this.pieces[0][0];
+                var king = this.pieces[0][3];
+                this.pieces[0][1] = king;
+                this.pieces[0][2] = rook;
+                this.pieces[0][0] = null;
+                this.pieces[0][3] = null;                               
+            };
+        } else {
+            var pi = moveString[0];
+            var pj = moveString[1];
+            var i = moveString[2];
+            var j = moveString[3];
 
-        this.pieces[i][j] = this.pieces[pi][pj];
-        this.pieces[pi][pj] = null;
-    }
-}
+            if (isWhite) {
+                pi = 7 - pi;
+                i = 7 - i;
+                pj = 7 - pj;
+                j = 7 - j;
+            }
+
+            this.pieces[i][j] = this.pieces[pi][pj];
+            this.pieces[pi][pj] = null;
+        };
+    };
+};
 
 

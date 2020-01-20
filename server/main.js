@@ -33,6 +33,7 @@ wsServer.on('request', function(request) {
                 } else {
                     turn = "white";
                 };
+                
                 game.move((d.player === "white"), d.move);
                 clients["white"].send(JSON.stringify({
                     pieces: game.getPieces("white"),
