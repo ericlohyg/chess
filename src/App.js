@@ -27,7 +27,7 @@ class App extends React.Component {
   	}
 
 	connect = () => {
-		var ws = new WebSocket("ws://localhost:1337");
+		var ws = new WebSocket("ws://35.202.8.190:80");
 		let that = this; // cache the this
 		var connectInterval;
 

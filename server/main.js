@@ -10,7 +10,7 @@ var server = http.createServer(function(request, response) {
   // process HTTP request. Since we're writing just WebSockets
   // server we don't have to implement anything.
 });
-server.listen(1337, function() { });
+server.listen(80, function() { });
 
 // create the server
 var wsServer = new WebSocketServer({
@@ -33,7 +33,7 @@ wsServer.on('request', function(request) {
                 } else {
                     turn = "white";
                 };
-                
+
                 game.move((d.player === "white"), d.move);
                 clients["white"].send(JSON.stringify({
                     pieces: game.getPieces("white"),
