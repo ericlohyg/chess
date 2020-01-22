@@ -415,15 +415,12 @@ export default class Board extends React.Component {
                             gameState.checked = true;
                         };
                         gameState.opponentThreaten[e][r] = true;
-                        // REMOVE THIS ONCE DONE 
-                        tiles[e][r].state = "opponentthreaten";
                     }
                 return true;
             }
 
             if (!ownPiece) {
                 gameState.opponentThreaten[e][r] = true;
-                tiles[e][r].state = "opponentthreaten";
             }
 
             return false;
