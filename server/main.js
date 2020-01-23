@@ -35,20 +35,23 @@ wsServer.on('request', function(request) {
                 };
 
                 game.move((d.player === "white"), d.move);
-                clients["white"].send(JSON.stringify({
-                    pieces: game.getPieces("white"),
-                    turn: turn
-                }));
-                clients["black"].send(JSON.stringify({
-                    pieces: game.getPieces("black"),
-                    turn: turn
-                }));
-
+                if (clients["white"] !== null && clients["black"] !== null) {
+                  clients["white"].send(JSON.stringify({
+                      pieces: game.getPieces("white"),
+                      turn: turn
+                  }));
+                  clients["black"].send(JSON.stringify({
+                      pieces: game.getPieces("black"),
+                      turn: turn
+                  }));
+                };
             } else if (d.type === "start") {
                 clients[d.player] = connection;
                 if (Object.keys(clients).length === 2) {
-                  game = new g();
-                  console.log("new game");
+                  if (game === null) {
+                    game = new g();
+                    console.log("new game");
+                  };
                   clients["white"].send(JSON.stringify({
                     pieces: game.getPieces("white"),
                     turn: turn
