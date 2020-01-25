@@ -26,49 +26,24 @@ wsServer.on('request', function(request) {
         if (message.type === 'utf8') {
         // process WebSocket message
             var d = JSON.parse(message.utf8Data);
-            console.log(d);
-            if (d.type === "move") {
-                if (turn === "white") {
-                    turn = "black";
-                } else {
-                    turn = "white";
-                };
+            console.log("rcv: ");
+			console.log(d);
+			
+			if (d.sender == null) {
+				console.log("Invalid msg, no sender defined");
+				return;
+			};
+			if (d.type == null) {
+				console.log("Invalid msg, no type defined");
+				return;
+			};
 
-                game.move((d.player === "white"), d.move);
-                if (clients["white"] !== null && clients["black"] !== null) {
-                  clients["white"].send(JSON.stringify({
-                      pieces: game.getPieces("white"),
-                      turn: turn
-                  }));
-                  clients["black"].send(JSON.stringify({
-                      pieces: game.getPieces("black"),
-                      turn: turn
-                  }));
-                };
-            } else if (d.type === "start") {
-                clients[d.player] = connection;
-                if (Object.keys(clients).length === 2) {
-                  if (game === null) {
-                    game = new g();
-                    console.log("new game");
-                  };
-                  clients["white"].send(JSON.stringify({
-                    pieces: game.getPieces("white"),
-                    turn: turn
-                }));
-                clients["black"].send(JSON.stringify({
-                    pieces: game.getPieces("black"),
-                    turn: turn
-                }));
-              }
-            }
+            
         }
     });
 
-  connection.on('close', function(connection) {
+    connection.on('close', function(connection) {
         // close user connection
-        console.log("closing");
-
-        clients = {};
-  });
+        
+    });
 });

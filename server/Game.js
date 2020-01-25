@@ -12,7 +12,7 @@ module.exports = class Game {
             this.pieces.push(row);
         };
         this.setupBoard();
-    }
+    };
 
     getPieces(color) {
         if (color === "white") {
@@ -29,7 +29,8 @@ module.exports = class Game {
         } else {
             return this.pieces;
         }
-    }
+    };
+
     setupBoard() {
         var pieces = this.pieces;
 

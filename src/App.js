@@ -27,7 +27,7 @@ class App extends React.Component {
   	}
 
 	connect = () => {
-		var ws = new WebSocket("ws://35.202.8.190:1337");
+		var ws = new WebSocket("ws://localhost:1337");
 		let that = this; // cache the this
 		var connectInterval;
 
@@ -88,9 +88,9 @@ class App extends React.Component {
 	onClick(e, color) {
 		this.setState({
 		color: color,
-		waiting: true
+		entered: true
 		});
-		this.state.ws.send(JSON.stringify({type:"start", player: color}));
+		this.state.ws.send(JSON.stringify({type:"start", sender: color}));
 	}
 	render() {
 		var toRender = <Landing onClick={this.onClick} waiting={this.state.waiting} />;
