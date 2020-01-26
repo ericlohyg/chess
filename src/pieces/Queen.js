@@ -1,10 +1,13 @@
-export default class Rook {
+export default class Queen {
 
     constructor(positionY, positionX, color) {
         this.positionX = positionX;
         this.positionY = positionY;
         this.hasMoved = false;
         this.color = color;
+
+        this.getMoveable = this.getMoveable.bind(this);
+
     }
 
     move(newX, newY) {
@@ -23,7 +26,7 @@ export default class Rook {
         };
 
         var moveable = new Array(8).fill(false).map(()=>new Array(8).fill(false)); 
-        var directions = [[-1, 0], [1, 0], [0, 1], [0, -1]];
+        var directions = [[-1, -1], [1, 1], [1, -1], [-1, 1], [-1, 0], [1, 0], [0, 1], [0, -1]];
         
         for (let i=0 ; i<directions.length ; i++) {
             var X = this.positionX;
@@ -37,10 +40,10 @@ export default class Rook {
                     break;
                 } else if (!first) {
                     moveable[Y][X] = true;
-                    first = false;
                 };
                 Y += directions[i][0];
                 X += directions[i][1];
+
                 first = false;
             };      
         };
@@ -48,10 +51,10 @@ export default class Rook {
     };
 
     getImageName() {
-        return `r${this.color}`;
+        return `q${this.color}`;
     };
 
     getThreaten(pieces) {
-        return this.getMoveable(pieces);        
+        return this.getMoveable(pieces);
     };
 }

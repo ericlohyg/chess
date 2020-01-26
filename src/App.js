@@ -16,15 +16,16 @@ class App extends React.Component {
 		entered: false,
 		pieces: null,
 		ws: null,
-		waiting: false
+		waiting: false,
+		move: ''
 		};
 
 		this.onClick = this.onClick.bind(this);
-	}
+	};
 
   	componentDidMount() {
     	this.connect();
-  	}
+  	};
 
 	connect = () => {
 		var ws = new WebSocket("ws://localhost:1337");
@@ -45,10 +46,18 @@ class App extends React.Component {
 			// listen to data sent from the websocket server
 			const message = JSON.parse(evt.data);
 			console.log(message);
-			this.setState({pieces: message.pieces,
-			turn: message.turn,
-			entered: true});
-		}
+
+			if (message.type === 'move') {
+				this.setState({
+					move: message.move,
+				});
+			} else if (message.type === 'start') {
+				this.setState({
+					entered: true
+				})
+			}
+
+		};
 	
 		// websocket onclose event listener
 		ws.onclose = e => {
@@ -77,7 +86,6 @@ class App extends React.Component {
 
 			ws.close();
 		};
-
 	};
 
 	check = () => {
@@ -88,15 +96,16 @@ class App extends React.Component {
 	onClick(e, color) {
 		this.setState({
 		color: color,
-		entered: true
+		waiting: true
 		});
 		this.state.ws.send(JSON.stringify({type:"start", sender: color}));
-	}
+	};
+
 	render() {
 		var toRender = <Landing onClick={this.onClick} waiting={this.state.waiting} />;
 
 		if (this.state.entered) {
-			toRender = <Board ws={this.state.ws} player={this.state.color} pieces={this.state.pieces} turn={this.state.turn}/>
+			toRender = <Board ws={this.state.ws} player={this.state.color} pieces={this.state.pieces} turn={this.state.turn} move={this.state.move}/>
 		} 
 
 		return (
@@ -104,7 +113,7 @@ class App extends React.Component {
 			{toRender}
 		</div>
 		);
-	}
+	};
 }
 
 export default App;

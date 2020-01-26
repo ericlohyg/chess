@@ -51,11 +51,11 @@ img {
 }
 
 .opponentthreatendark {
-  background-color: red;
+  background-color: #750000;
 }
 
 .opponentthreatenlight {
-  background-color: red;
+  background-color: #fa0000;
 }
 
 .whitebutton {

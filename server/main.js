@@ -36,14 +36,39 @@ wsServer.on('request', function(request) {
 			if (d.type == null) {
 				console.log("Invalid msg, no type defined");
 				return;
-			};
-
+            };
             
-        }
+            if (clients[d.sender] == null) {
+                clients[d.sender] = connection;
+            };
+
+            if (d.type === 'move' && d.move != null) {
+                var msg = {};
+                msg.move = d.move;
+                msg.type = 'move';
+
+                if (d.sender === 'l') {
+                    console.log("sending to d");
+                    clients['d'].send(JSON.stringify(msg));
+                } else if (d.sender === 'd') {
+                    console.log("sending to l");
+                    clients['l'].send(JSON.stringify(msg));
+                };
+            } else if (clients['d'] != null && clients['l'] != null) {
+                clients['d'].send(JSON.stringify({type: 'start'}));
+                clients['l'].send(JSON.stringify({type: 'start'}));
+            };
+        };
     });
 
     connection.on('close', function(connection) {
         // close user connection
-        
+        if (clients['d'] != null) {
+            clients['d'].close();
+        };
+        if (clients['l' != null] ) {
+            clients['l'].close();
+        };
+        clients = {};
     });
 });
