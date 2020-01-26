@@ -34,13 +34,23 @@ export default class Pawn {
         var forward = this.positionY+direction;
 
         if (forward >= 0 && forward < 8 && pieces[forward][this.positionX] == null) {
-            moveable[this.positionY+direction][this.positionX] = true;
-        } 
+            moveable[forward][this.positionX] = true;
+        };
+
+        if (forward >= 0 && forward < 8) {
+            if (pieces[forward][this.positionX+1] != null && pieces[forward][this.positionX+1].color !== this.color) {
+                moveable[forward][this.positionX+1] = true;
+            };
+            if (pieces[forward][this.positionX-1] != null && pieces[forward][this.positionX-1].color !== this.color) {
+                moveable[forward][this.positionX-1] = true;
+            };
+        };
 
         var evenFurther = forward+direction;
         if (evenFurther < 8 && evenFurther >= 0 && !this.hasMoved && pieces[evenFurther][this.positionX] == null) {
             moveable[this.positionY+direction+direction][this.positionX] = true;
         };
+
         console.log(moveable);
         return moveable;
     };
