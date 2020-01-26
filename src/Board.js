@@ -200,7 +200,6 @@ export default class Board extends React.Component {
 
     isChecked(pieces, tiles) {
         // search for the king
-
         tiles = this.getThreats(tiles, pieces);
         for (let i=0;i<8;i++) {
             for (let j=0;j<8;j++) {
